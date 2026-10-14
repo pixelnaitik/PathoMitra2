@@ -831,7 +831,13 @@ export default function ReportsPage({
           );
           doc.setTextColor(BRAND[0], BRAND[1], BRAND[2]);
           doc.setFont('helvetica', 'bold');
-          doc.text('FINAL', 210 - mRight, currentY + 5.2, { align: 'right' });
+          const printableStatus =
+            report.status === 'draft'
+              ? 'DRAFT — NOT ISSUED'
+              : report.status === 'final'
+                ? 'FINAL'
+                : 'STATUS UNCONFIRMED';
+          doc.text(printableStatus, 210 - mRight, currentY + 5.2, { align: 'right' });
           doc.setDrawColor(HAIRLINE[0], HAIRLINE[1], HAIRLINE[2]);
           doc.setLineWidth(0.3);
           doc.line(mLeft, currentY + 9, 210 - mRight, currentY + 9);
