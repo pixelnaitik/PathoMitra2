@@ -1,0 +1,22 @@
+ext {
+    // Android 9 (API 28). Raised from Capacitor's floor of 24 so the screen-lock
+    // unlock works on every supported device: BiometricPrompt only honours the
+    // DEVICE_CREDENTIAL authenticator from API 28 up, so below that the
+    // PIN/pattern fallback in src/lib/biometric.ts silently fails while the
+    // availability check still reports the device usable. Also puts the SQLCipher
+    // key behind the hardware KeyMint keystore Android 9 mandates.
+    minSdkVersion = 28
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    androidxActivityVersion = '1.11.0'
+    androidxAppCompatVersion = '1.7.1'
+    androidxCoordinatorLayoutVersion = '1.3.0'
+    androidxCoreVersion = '1.17.0'
+    androidxFragmentVersion = '1.8.9'
+    coreSplashScreenVersion = '1.2.0'
+    androidxWebkitVersion = '1.14.0'
+    junitVersion = '4.13.2'
+    androidxJunitVersion = '1.3.0'
+    androidxEspressoCoreVersion = '3.7.0'
+    cordovaAndroidVersion = '14.0.1'
+}

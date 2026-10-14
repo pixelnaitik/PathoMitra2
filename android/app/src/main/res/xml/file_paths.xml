@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paths the FileProvider may hand out as content:// URIs. The Share plugin
+  resolves `<applicationId>.fileprovider` against this table, so every directory
+  Capacitor's Filesystem can write to has to appear here — otherwise sharing a
+  report PDF fails with "Couldn't find host ... for file:// URI".
+
+  Every entry is scoped to the app's own `PathoMitra/` sub-folder. They used to
+  all be `path="."`, which granted this provider authority over the *entire*
+  external-storage root: any future bug in a share or deep-link path would
+  become a whole-volume read primitive over a device that holds patient records,
+  and it is the exact pattern Play's automated storage-path scans flag. Narrowing
+  to the one folder the app actually writes is free — nothing else is shared.
+
+  Keep these in step with OUTPUT_SUBDIR in src/lib/native-files.ts, and keep the
+  legacy_ entries below: files exported before the PathoMitra rebrand are still
+  sitting in `PathLab OS/`, and a saved report that cannot be opened is data the
+  lab has lost. New writes never go there.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- getFilesDir()/PathoMitra — Directory.Data. The default destination:
+         app-private, unreadable by any other app or file manager. -->
+    <files-path name="shared_files" path="PathoMitra" />
+    <!-- getCacheDir()/PathoMitra — Directory.Cache. -->
+    <cache-path name="shared_cache" path="PathoMitra" />
+
+    <!-- The entries below are only reachable when the lab has deliberately
+         enabled Settings → Data & Diagnostics → "Save exports to Documents".
+         They expose the app's own sub-folder, never the volume root. -->
+
+    <!-- Environment.getExternalStorageDirectory()/PathoMitra — Directory.External. -->
+    <external-path name="shared_external" path="PathoMitra" />
+    <!-- Environment.getExternalStoragePublicDirectory(DOCUMENTS)/PathoMitra
+         — Directory.Documents. -->
+    <external-path name="shared_documents" path="Documents/PathoMitra" />
+    <!-- getExternalFilesDir(null)/PathoMitra — app-private on external storage. -->
+    <external-files-path name="shared_external_files" path="PathoMitra" />
+    <!-- getExternalCacheDir()/PathoMitra. -->
+    <external-cache-path name="shared_external_cache" path="PathoMitra" />
+
+    <!-- Pre-rebrand locations (`PathLab OS/`). Read-only in effect: nothing
+         writes here any more, these entries only let already-exported reports,
+         CSVs and backups be shared or opened again. -->
+    <files-path name="legacy_shared_files" path="PathLab OS" />
+    <cache-path name="legacy_shared_cache" path="PathLab OS" />
+    <external-path name="legacy_shared_external" path="PathLab OS" />
+    <external-path name="legacy_shared_documents" path="Documents/PathLab OS" />
+    <external-files-path name="legacy_shared_external_files" path="PathLab OS" />
+    <external-cache-path name="legacy_shared_external_cache" path="PathLab OS" />
+</paths>

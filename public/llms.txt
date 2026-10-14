@@ -1,0 +1,60 @@
+# PathoMitra — LLM Context File
+# https://llmstxt.org
+
+# PathoMitra is an offline-first digital pathology laboratory management system.
+# It provides patient record management, laboratory test reporting, doctor management,
+# invoicing and revenue analytics — entirely on-device, with no server and no accounts.
+
+> PathoMitra is an offline, local-first digital pathology lab management system for
+> clinical laboratories. All data is stored in an encrypted on-device database
+> (SQLCipher, AES-256, key in the Android hardware keystore). The Android build requests
+> no INTERNET permission, ships no analytics or crash reporting, and never transmits
+> patient data. Access is guarded by a single local operator account with a
+> PBKDF2-hashed passcode and an optional biometric unlock.
+
+## Core Features
+
+- Patient management — add, search and track patient records with full lab history
+- Lab report generation — create, fill and export PDF reports for 40+ pathology tests, with four templates and age/sex reference-range flagging
+- Drafts and amendment history — a report issues once; amendments bump the version and record who changed them and when
+- Custom tests and profiles — user-defined tests, units, groups and reference boundaries
+- Doctor directory — referring doctor profiles and contact information
+- Invoicing and revenue analytics — daily, monthly and cumulative revenue with charts
+- Notification centre — derived alerts for overdue reports, unissued drafts and unpaid bills
+- Encrypted local storage with operator-owned JSON backups and in-app data erase
+- Local authentication — passcode plus optional biometric / device-credential unlock, with auto re-lock
+
+## Platforms
+
+- Android (APK / AAB via Capacitor 8) — the production target; no network permission
+- Web build — deployed to Cloudflare Pages for evaluation; installable as a PWA
+
+## Public Pages
+
+- [Home](https://pathomitra.pages.dev/) — Landing page with product overview
+- [Technology](https://pathomitra.pages.dev/technology) — Technology and security overview
+- [Solutions](https://pathomitra.pages.dev/solutions) — Feature descriptions and use cases
+
+## Private Pages (local operator unlock required)
+
+- /dashboard — Main application dashboard
+- /auth — Local operator unlock
+
+## Technology Stack
+
+- Frontend: React 19, TypeScript (strict), Vite, Tailwind CSS 4
+- Native shell: Capacitor 8 (Android) with the community SQLCipher SQLite plugin
+- Data: encrypted on-device SQLite (SQLCipher AES-256) behind a collection façade; Android Keystore for secrets
+- PDF: jsPDF + jsPDF-AutoTable
+- Validation: Zod
+- Web hosting: Cloudflare Pages
+
+## Repository
+
+- Source: https://github.com/pixelnaitik/PathoMitra
+- License: MIT
+
+## Optional
+
+- [robots.txt](https://pathomitra.pages.dev/robots.txt)
+- [manifest.json](https://pathomitra.pages.dev/manifest.json)

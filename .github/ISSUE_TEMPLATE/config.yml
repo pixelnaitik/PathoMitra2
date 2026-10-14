@@ -1,0 +1,14 @@
+# Contact / routing guidance shown above the issue form.
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/pixelnaitik/PathoMitra/blob/main/SECURITY.md
+    about: >
+      Never open a public issue for anything that could expose patient data.
+      Security policy and private reporting instructions are in SECURITY.md.
+  - name: Contribution guide
+    url: https://github.com/pixelnaitik/PathoMitra/blob/main/.github/CONTRIBUTING.md
+    about: Branch, commit-message, lint and test expectations before opening a PR.
+  - name: Setup, Android build and deployment reference
+    url: https://github.com/pixelnaitik/PathoMitra#readme
+    about: Local setup, Android release signing, CI/CD workflows and the privacy-policy site.

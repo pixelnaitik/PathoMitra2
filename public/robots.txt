@@ -1,0 +1,13 @@
+# robots.txt — PathoMitra / PathoMitra
+# https://pathomitra.pages.dev
+
+User-agent: *
+Allow: /
+Allow: /technology
+Allow: /solutions
+
+# Block private dashboard and auth routes from indexing
+Disallow: /dashboard
+Disallow: /auth
+
+Sitemap: https://pathomitra.pages.dev/sitemap.xml

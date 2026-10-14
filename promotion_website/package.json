@@ -1,0 +1,12 @@
+{
+  "name": "pathomitra-promotion-website",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone, static-only public marketing site for PathoMitra. Contains no auth, session, or backend-dependent code. IMPORTANT: run npm install / npm run scripts from the parent repo — react, react-dom, react-router-dom, motion, lucide-react, clsx, tailwind-merge, tailwindcss, vite and the Vite plugins are resolved from the parent node_modules. Do NOT run npm install inside this folder; it declares no dependencies of its own.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}

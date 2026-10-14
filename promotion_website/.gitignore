@@ -1,0 +1,5 @@
+# Build output + local scratch. This site is static-only; nothing here is
+# source. The `dist/` folder is the deployable artifact.
+dist/
+.tmp-build/
+node_modules/

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f5f5f7" />
+
+    <!--
+    No remote origins are preconnected here on purpose. The APK ships without the
+    INTERNET permission and the web build no longer talks to Firebase either, so
+    the old firestore / identitytoolkit / lh3 hints asked the browser to open
+    sockets nothing would ever use.
+
+    There is also no remote font request. The previous `@import url(...)` in
+    src/index.css was render-blocking, and in the WebView it could only time out
+    before the device fell back to its own UI face. `--font-sans` /
+    `--font-display` in index.css now lead with a locally installed 'Inter' and
+    fall back to the platform stack; see the self-hosting note at the top of that
+    file to bundle the face properly.
+  -->
+
+    <!-- PWA Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Favicon set: the ribbon-P mark, installed from the favicon.io package
+         in favicon_io/ (owner decision 2026-10-11; no SVG). The runtime
+         custom-logo upload (lib/brand-logo.ts) paints over these when a lab
+         uploads its own logo in Settings → Lab Organization. -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <title>PathoMitra — Lab Management Simplified</title>
+    <meta
+      name="description"
+      content="PathoMitra — Lab Management Simplified. Offline, on-device digital pathology laboratory management system for patient records, encrypted reports, billing and analytics."
+    />
+    <meta
+      name="keywords"
+      content="pathology lab software, lab management system, digital pathology, patient reports, clinical lab console, lab management simplified"
+    />
+    <meta property="og:title" content="PathoMitra — Lab Management Simplified" />
+    <meta
+      property="og:description"
+      content="PathoMitra — Lab Management Simplified. Patient records, test reports, doctor management, and lab analytics in one secure offline console."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://pathomitra.pages.dev" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PathoMitra — Lab Management Simplified" />
+    <meta
+      name="twitter:description"
+      content="PathoMitra — Lab Management Simplified. Offline digital pathology laboratory management console."
+    />
+    <script>
+      // Pre-paint theme bootstrap: flip <html> data attributes so the CSS
+      // palette/mode blocks in index.css apply before first paint (no FOUC).
+      // All color values live in CSS — keep this script hex-free.
+      (function () {
+        try {
+          var s = localStorage.getItem('pathologyos_settings');
+          var themeId = 'navy';
+          var themeMode = 'light';
+          var textSize = 'md';
+          var reduceMotion = false;
+          var cornerStyle = 'rounded';
+          if (s) {
+            var parsed = JSON.parse(s);
+            if (parsed && parsed.themeId) themeId = parsed.themeId;
+            if (parsed && parsed.themeMode) themeMode = parsed.themeMode;
+            if (parsed && (parsed.textSize === 'sm' || parsed.textSize === 'lg'))
+              textSize = parsed.textSize;
+            if (parsed && parsed.reduceMotion === true) reduceMotion = true;
+            if (parsed && parsed.cornerStyle === 'sharp') cornerStyle = 'sharp';
+          }
+          var r = document.documentElement;
+          r.setAttribute('data-palette', themeId);
+          r.setAttribute('data-theme', themeMode === 'dark' ? 'dark' : 'light');
+          r.style.colorScheme = themeMode === 'dark' ? 'dark' : 'light';
+          r.setAttribute('data-text-size', textSize);
+          r.setAttribute('data-motion', reduceMotion ? 'reduced' : 'full');
+          r.setAttribute('data-radius', cornerStyle);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Native splash screen: shows instantly (0ms) while JS bundle loads.
+           Styled by index.css so it inherits the active palette. React removes it on mount. -->
+      <div id="app-splash" class="app-splash">
+        <img
+          id="splash-logo"
+          src="/brand-p.png"
+          alt="PathoMitra"
+          width="88"
+          height="88"
+          class="splash-icon"
+        />
+        <p class="splash-title">PathoMitra</p>
+        <!-- "Console", not "Portal": a portal implies access to something remote,
+             and this build has no network permission. This line is the first thing
+             a Play reviewer sees when the app launches. -->
+        <p class="splash-sub">Offline Pathology Laboratory Console</p>
+        <div class="splash-track">
+          <div id="splash-bar" class="splash-fill"></div>
+        </div>
+        <script>
+          // Custom brand logo: if the lab uploaded one (Settings → Lab
+          // Organization), paint it over the default PathoMitra-ribbon splash
+          // (public/brand-p.png — the temporary brand mark until a lab ships
+          // its own). The acceptance rule mirrors isBrandLogoDataUrl in
+          // src/lib/settings.ts — only an inline data:image URL within the
+          // size ceiling is trusted, never a remote address (this build is
+          // offline by posture).
+          (function () {
+            try {
+              var s = localStorage.getItem('pathologyos_settings');
+              if (!s) return;
+              var logo = JSON.parse(s).brandLogoUrl;
+              if (
+                typeof logo === 'string' &&
+                logo.indexOf('data:image/') === 0 &&
+                logo.length <= 2000000
+              ) {
+                document.getElementById('splash-logo').src = logo;
+              }
+            } catch (e) {}
+          })();
+        </script>
+        <script>
+          // Animate the splash bar while JS loads
+          (function () {
+            var bar = document.getElementById('splash-bar');
+            var w = 0;
+            var iv = setInterval(function () {
+              w += Math.random() * 15;
+              if (w > 85) w = 85;
+              bar.style.transform = 'scaleX(' + w / 100 + ')';
+            }, 200);
+            window.__splashInterval = iv;
+          })();
+        </script>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

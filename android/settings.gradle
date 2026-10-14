@@ -1,0 +1,23 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    // @capacitor/filesystem pins `jvmToolchain(21)` (every other Capacitor
+    // module only sets source/target compatibility and so builds on whichever
+    // JDK Gradle runs on). Without this resolver, a machine that has no JDK 21
+    // installed — Android Studio's bundled JBR is 25 — fails task creation with
+    // "Cannot find a Java installation ... Toolchain download repositories have
+    // not been configured". Gradle now fetches a matching JDK on demand instead.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+include ':app'
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
+
+apply from: 'capacitor.settings.gradle'

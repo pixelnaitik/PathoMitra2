@@ -1,0 +1,122 @@
+name: Release
+
+# Triggered by the git tag that `npm run release` (standard-version) creates.
+# Push tags with:  git push && git push --tags
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build signed Android App Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          # Gradle 9.1 + AGP 8.x compile against Java 21 (see capacitor.build.gradle).
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle
+        # `dist/` is what Capacitor copies into the native project.
+        run: npm run build
+
+      - name: Sync native project
+        run: npx cap sync android
+
+      - name: Decode release keystore
+        # The keystore is stored base64-encoded in a secret so no binary or
+        # password is committed. Absent secrets => unsigned AAB (documented,
+        # still usable with Play App Signing which re-signs on upload).
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/upload-keystore.jks"
+          echo "KEYSTORE_FILE=$GITHUB_WORKSPACE/upload-keystore.jks" >> "$GITHUB_ENV"
+
+      - name: Bundle release (AAB)
+        env:
+          KEYSTORE_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KEYSTORE_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          KEYSTORE_STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+        working-directory: android
+        run: ./gradlew bundleRelease --stacktrace
+
+      - name: Verify 16 KB native page alignment
+        # Google Play rejects updates targeting API 35+ whose native libraries
+        # are not 16 KB page-aligned. AAB stores the .so compressed, so zip
+        # alignment is irrelevant — the check that matters is the ELF LOAD
+        # segment p_align >= 0x4000. Fail loudly if any arm64 lib is under-aligned.
+        run: |
+          set -euo pipefail
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
+          test -f "$AAB"
+          TMP="$(mktemp -d)"
+          unzip -o -q "$AAB" -d "$TMP" 'base/lib/arm64-v8a/*' || true
+          status=0
+          while IFS= read -r -d '' so; do
+            align=$(readelf -lW "$so" 2>/dev/null | awk '/LOAD/{print $NF; exit}')
+            echo "  $so -> LOAD align $align"
+            case "$align" in
+              0x4000|0x8000|0x10000|0x20000) : ;;  # >= 16 KB, ok
+              *) echo "::warning::${so} is not 16 KB aligned ($align)"; status=1 ;;
+            esac
+          done < <(find "$TMP" -name '*.so' -print0)
+          if [ "$status" -ne 0 ]; then
+            echo "::error::One or more native libraries are not 16 KB page-aligned. Upgrade the offending plugin (e.g. @capacitor-community/sqlite) to a 16 KB build before releasing."
+          fi
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pathomitra-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
+
+  github-release:
+    name: Create GitHub Release
+    needs: build-android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          # Full history + tags so the changelog extractor can find the section
+          # that belongs to the pushed tag.
+          fetch-depth: 0
+
+      - name: Download AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: pathomitra-aab
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Body is auto-pulled from CHANGELOG.md (the section for this tag).
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: release-assets/app-release.aab

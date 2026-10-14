@@ -1,0 +1,80 @@
+name: Bug report
+description: Something in PathoMitra does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not report security issues here** — they are visible to everyone,
+        including anyone exploiting them. Use
+        [SECURITY.md](https://github.com/pixelnaitik/PathoMitra/blob/main/SECURITY.md).
+
+        Never paste real patient names, report contents, or backup files into
+        this form. Use clearly synthetic examples.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the observed behaviour, then the expected behaviour.
+      placeholder: |
+        Observed: filtering Reports to "Today" at 02:00 IST hides reports
+        created today.
+        Expected: "Today" shows every report created during the local day.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Reports / PDF generation
+        - Patients
+        - Doctors
+        - Analytics
+        - Settings / report layout
+        - Authentication / lock screen
+        - Backup & restore
+        - Notifications
+        - Android native (Capacitor / printing / biometrics)
+        - Build / CI / deployment
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: The Android build and the web build behave differently (native printing, biometrics, encrypted database).
+      options:
+        - Android APK / AAB (release build)
+        - Android (debug build via Android Studio)
+        - Web — local `npm run dev`
+        - Web — Cloudflare Pages deployment
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: The commit is enough if you are on `main`; otherwise include the version tag.
+      value: |
+        - App version / commit:
+        - Android version and device (or browser and OS for the web build):
+        - Unlock method in use (passcode only / biometric):
+        - Did a backup restore or data erase happen before the issue? (yes / no)
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console / network output
+      description: Any red text in DevTools, plus the response body of the failing request. Paste as text, not screenshots.
+      render: shell

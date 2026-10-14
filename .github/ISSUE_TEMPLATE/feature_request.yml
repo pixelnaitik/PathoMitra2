@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose new functionality or a meaningful change in behaviour
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature work in this repository has to survive a clinical workflow: a
+        pathologist issuing twenty reports an hour, on a shared workstation,
+        sometimes on a bad connection. Ideas that do not fit that constraint are
+        still welcome, but they may be closed as out of scope — say so in the
+        issue rather than opening a PR unprompted.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is hard or impossible today?
+      description: The workflow that breaks, not the solution you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: |
+        Include the data-model and permission implications. A new field usually
+        needs a matching `firestore.rules` validator, a `lib/models.ts` schema,
+        an entry in `firestore.indexes.json`, and a signed-payload decision
+        (does it change the report signature?).
+    validations:
+      required: true
+  - type: dropdown
+    id: affects-clinical-output
+    attributes:
+      label: Does it change an issued report?
+      description: >
+        Anything in the signed payload is history-sensitive: amending it
+        invalidates already-printed QR codes.
+      options:
+        - 'No'
+        - 'Yes — the signed payload changes'
+        - 'Yes — the printed layout changes only'
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: A workaround staff use today, and why it is not good enough.

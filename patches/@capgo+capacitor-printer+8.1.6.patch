@@ -1,0 +1,46 @@
+diff --git a/node_modules/@capgo/capacitor-printer/android/src/main/java/com/capgo/printer/Printer.java b/node_modules/@capgo/capacitor-printer/android/src/main/java/com/capgo/printer/Printer.java
+index 201fe15..9b129fb 100644
+--- a/node_modules/@capgo/capacitor-printer/android/src/main/java/com/capgo/printer/Printer.java
++++ b/node_modules/@capgo/capacitor-printer/android/src/main/java/com/capgo/printer/Printer.java
+@@ -247,6 +247,23 @@ public class Printer {
+         }
+     }
+ 
++    /**
++     * Default print attributes for our report documents.
++     *
++     * <p>The print sheet used to be launched with an empty {@link PrintAttributes.Builder}, which
++     * leaves the media size unset. Android then falls back to "Adaptive" orientation and, for the
++     * built-in PDF handler, defaults the sheet to LANDSCAPE — so a portrait A4 report page ends up
++     * letter-boxed onto a wide sheet. Pinning ISO A4 (whose natural orientation is portrait) makes
++     * the dialog open in portrait and keeps the preview faithful to the generated PDF.
++     */
++    private PrintAttributes portraitDocumentAttributes() {
++        return new PrintAttributes.Builder()
++            .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
++            .setResolution(new PrintAttributes.Resolution("default", "default", 300, 300))
++            .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
++            .build();
++    }
++
+     private void printDocument(File file, String name) throws Exception {
+         PrintManager printManager = (PrintManager) context.getSystemService(Context.PRINT_SERVICE);
+         if (printManager == null) {
+@@ -254,7 +271,7 @@ public class Printer {
+         }
+ 
+         PrintDocumentAdapter printAdapter = new PdfDocumentAdapter(file);
+-        printManager.print(name, printAdapter, new PrintAttributes.Builder().build());
++        printManager.print(name, printAdapter, portraitDocumentAttributes());
+     }
+ 
+     private void printDocumentFromUri(Uri uri, String name) throws Exception {
+@@ -264,7 +281,7 @@ public class Printer {
+         }
+ 
+         PrintDocumentAdapter printAdapter = new UriDocumentAdapter(uri);
+-        printManager.print(name, printAdapter, new PrintAttributes.Builder().build());
++        printManager.print(name, printAdapter, portraitDocumentAttributes());
+     }
+ 
+     private void createWebPrintJob(WebView webView, String name) {

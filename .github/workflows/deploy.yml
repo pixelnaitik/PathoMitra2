@@ -1,0 +1,73 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy the web bundle to Cloudflare Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install Dependencies
+        run: npm ci
+      # Same gates as ci.yml — a push to main has to clear the bar a PR would.
+      - name: Lint Code
+        run: npm run lint:ci
+      - name: Run Tests With Coverage Gate
+        run: npm run test:coverage
+      # There is deliberately no Firebase-config gate here any more. The app is
+      # local-first: no Firebase SDK is imported anywhere in src/, so the old
+      # check enforced values the bundle could not use, and the build it guarded
+      # produced a client that talks only to on-device storage.
+      - name: Build Project
+        # SOURCEMAP is deliberately not set: every file in dist/ is served
+        # publicly, so .map files must not be part of a Pages deployment.
+        run: npm run build
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler pages deploy dist --project-name=pathomitra
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  privacy-site:
+    name: Build the static privacy policy for the owned domain
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install Dependencies
+        run: npm ci
+      - name: Generate privacy-site/
+        # Plain HTML, no JavaScript — a Play reviewer must see the policy body
+        # without executing anything. Rendered from src/lib/privacy-policy.ts and
+        # src/lib/terms.ts so the hosted text cannot drift from the in-app text.
+        env:
+          VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL }}
+          VITE_PRIVACY_URL: ${{ vars.VITE_PRIVACY_URL }}
+        run: npm run build:privacy
+      - name: Upload static policy artifact
+        # Publish this artifact to the domain named in VITE_PRIVACY_URL — the
+        # Play listing points there, not at a *.pages.dev subdomain.
+        uses: actions/upload-artifact@v4
+        with:
+          name: privacy-site
+          path: privacy-site/
+          if-no-files-found: error

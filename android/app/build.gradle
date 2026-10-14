@@ -1,0 +1,159 @@
+apply plugin: 'com.android.application'
+
+// ---------------------------------------------------------------------------
+// Version. The single source of truth is package.json, which standard-version
+// bumps on every release (feat -> minor, fix -> patch, BREAKING -> major).
+//   versionCode = major * 1_000_000 + minor * 1_000 + patch   (1.2.3 -> 1002003)
+// The previous `minor * 100 + min(patch, 99)` spread silently collided: 1.0.100
+// mapped onto 1.0.0's code, and a patch above 99 rolled into the next minor
+// band. Play rejects an upload whose versionCode already exists, so a collision
+// fails the release with no warning at build time. The bounds below are now
+// asserted instead of clamped.
+// ---------------------------------------------------------------------------
+def pkgJson = new groovy.json.JsonSlurper().parse(rootProject.file('../package.json'))
+def semverParts = (pkgJson.version ?: '1.0.0').toString().replaceFirst(/^v/, '').split('-')[0].split('\\.')
+def vMajor = (semverParts.length > 0 ? semverParts[0] : '0') as int
+def vMinor = (semverParts.length > 1 ? semverParts[1] : '0') as int
+def vPatch = (semverParts.length > 2 ? semverParts[2] : '0') as int
+if (vMinor > 999 || vPatch > 999) {
+    throw new RuntimeException(
+        "package.json version ${pkgJson.version} cannot be encoded as a versionCode: " +
+        "minor and patch must both stay below 1000."
+    )
+}
+def appVersionCode = vMajor * 1000000 + vMinor * 1000 + vPatch
+def appVersionName = pkgJson.version ?: '1.0'
+logger.lifecycle("App version: versionName=${appVersionName} versionCode=${appVersionCode}")
+
+// ---------------------------------------------------------------------------
+// Release signing. Credentials come from android/keystore.properties (ignored
+// by git) or from the KEYSTORE_* environment variables used by CI. Nothing here
+// ever has a hard-coded password: an absent keystore is a supported state, it
+// just produces an unsigned artifact that cannot be installed.
+// ---------------------------------------------------------------------------
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def propOrEnv = { String propKey, String envKey ->
+    keystoreProps.getProperty(propKey) ?: System.getenv(envKey)
+}
+def rawKeystorePath = propOrEnv('storeFile', 'KEYSTORE_FILE')
+def releaseKeystoreFile = null
+if (rawKeystorePath) {
+    def candidate = new File(rawKeystorePath)
+    releaseKeystoreFile = candidate.isAbsolute() ? candidate : rootProject.file(rawKeystorePath)
+}
+def releaseKeyAlias = propOrEnv('keyAlias', 'KEYSTORE_KEY_ALIAS')
+def releaseKeyPassword = propOrEnv('keyPassword', 'KEYSTORE_KEY_PASSWORD')
+def releaseStorePassword = propOrEnv('storePassword', 'KEYSTORE_STORE_PASSWORD')
+// Plain null checks and explicit booleans: Gradle 9 instruments java.io.File to
+// track configuration-cache inputs, and a safe-navigation call (`file?.exists()`)
+// or a `&&` chain that can evaluate to null hands that tracker a null file and
+// fails project evaluation with "parameter file is null".
+def keystoreFileExists = releaseKeystoreFile != null && releaseKeystoreFile.exists()
+def hasReleaseSigning = keystoreFileExists &&
+        releaseKeyAlias != null && releaseKeyPassword != null && releaseStorePassword != null
+
+android {
+    namespace = "com.pathomitra.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.pathomitra.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode appVersionCode
+        versionName appVersionName
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        // Declared only when the credentials resolve, so a contributor without a
+        // keystore still gets a working debug build.
+        if (hasReleaseSigning) {
+            release {
+                storeFile releaseKeystoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // R8 + resource shrinking. Capacitor ships consumer ProGuard rules
+            // (plugin classes, @PluginMethod, @PermissionCallback) and
+            // app/proguard-rules.pro adds the reflection-heavy gaps: Gson DTOs,
+            // the @JavascriptInterface entry point, SQLCipher and the plugin
+            // models. Without these, minification silently breaks the bridge at
+            // runtime rather than failing the build.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+            // Explicit: this app holds patient data, and a debuggable release is
+            // both a Play rejection and an open invitation to attach a debugger.
+            debuggable false
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Artifact naming. Every APK carries the package.json semver at the end of
+// its file name (`app-release-2.1.0.apk`), so copies sitting in a Downloads
+// folder, a Drive backup or a release page can be told apart without being
+// opened. It is the same string the manifest reports as versionName, so the
+// file name can never disagree with the installed version.
+// ---------------------------------------------------------------------------
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        output.outputFileName = "app-${variant.buildType.name}-${appVersionName}.apk"
+    }
+}
+
+if (!hasReleaseSigning) {
+    logger.warn("")
+    logger.warn("  PathoMitra: no release keystore configured.")
+    logger.warn("  assembleRelease will produce an UNSIGNED APK/AAB that Android refuses")
+    logger.warn("  to install. Copy android/keystore.properties.example to")
+    logger.warn("  android/keystore.properties (git-ignored) or set KEYSTORE_FILE /")
+    logger.warn("  KEYSTORE_KEY_ALIAS / KEYSTORE_KEY_PASSWORD / KEYSTORE_STORE_PASSWORD")
+    logger.warn("  in the environment.")
+    logger.warn("")
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

@@ -1,0 +1,68 @@
+# Cloudflare Pages — Cache-Control + Security Headers
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  # Same-origin only: the product is local-first with no backend, so the previous
+  # Firebase / Google-font / remote-avatar allowances were dead origins and are gone.
+  # 'unsafe-inline' stays for script/style because index.html carries the pre-paint
+  # theme bootstrap and the splash animation inline.
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+
+# Static hashed assets (JS, CSS) — cache for 1 year, immutable
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Images — cache for 30 days
+/*.png
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/*.jpg
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/*.jpeg
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/*.webp
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/*.ico
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/*.svg
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+# Fonts — cache for 1 year
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+
+# Manifest and SW — short cache so updates propagate quickly
+/manifest.json
+  Cache-Control: public, max-age=86400
+
+/sw.js
+  Cache-Control: no-cache
+
+# HTML — never cache so latest version always loads
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# robots.txt, llms.txt and sitemap — short cache so changes propagate
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+/llms.txt
+  Cache-Control: public, max-age=86400
+
+/sitemap.xml
+  Cache-Control: public, max-age=86400
+  Content-Type: application/xml; charset=utf-8

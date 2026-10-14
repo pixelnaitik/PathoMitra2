@@ -1,0 +1,39 @@
+# Keep dependencies and actions current without manual chores.
+#
+# Deliberately conservative: capped open-PR count, patch+minor updates folded
+# into one grouped PR, and majors raised individually so a `firebase` or
+# `react-router` major version cannot land as an unreviewed bulk bump.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    groups:
+      patch-and-minor:
+        update-types:
+          - patch
+          - minor
+    ignore:
+      # Node types track the local runtime (v20+); let them move with the
+      # toolchain rather than opening a weekly PR.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Asia/Kolkata
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns:
+          - '*'

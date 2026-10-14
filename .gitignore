@@ -1,0 +1,23 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Tooling scratch directories (safe to delete)
+# .tmp/ receives TEMP when builds are run in a workspace-restricted shell
+.tmp/
+.tmp-build/
+.build-tmp/
+.npm-cache/
+
+# Desktop (Electron) build output — never commit installers/win-unpacked
+dist-electron/
+release-desktop/
+
+# Collected build artifacts (APK / MSIX handed to the owner) — never committed
+buildoutput/
+

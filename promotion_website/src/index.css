@@ -1,0 +1,1085 @@
+/* No remote font request. An earlier `@import url(fonts.googleapis.com/…Inter…)`
+   compiled into the *first bytes* of the shipped CSS, so every cold start —
+   including the offline APK, where the request can only fail — blocked first
+   paint on a network round trip and sent the device's address to a third party.
+   For a local-first clinical tool that is both a performance and a privacy bug.
+
+   Typography is therefore the platform stack below, which starts with 'Inter':
+   a locally installed Inter is still used, and Android renders Roboto (close
+   enough in proportion to keep the scale intact) with no bytes downloaded.
+
+   To self-host Inter instead: drop `inter-latin.woff2` (+ the 400-700 variable
+   file) into `public/fonts/`, then add an @font-face for each weight range with
+   `font-display: swap` and `src: url(/fonts/inter-latin.woff2) format('woff2')`.
+   `public/_headers` already caches /*.woff2 immutably for a year, and CSP
+   `font-src` is already 'self' — no other change is required. */
+@import 'tailwindcss';
+
+/* Dark mode is driven by <html data-theme="dark"> (set by lib/theme.ts + the
+   inline bootstrap in index.html) — never by the OS, so the user's explicit
+   choice in Settings always wins. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Keyboard affordances — the ↵ / ↑↓ / ESC chips in the search palette. They teach
+   a shortcut that cannot be used without a physical keyboard, and on the APK or a
+   phone browser they are dead weight in the way of the result list. A touch input
+   reports `(pointer: coarse)`, so tag the element `hidden keyboard-only:flex` (or
+   `:block`) to show it only where a real keyboard is plausible. */
+@custom-variant keyboard-only {
+  @media (hover: hover) and (pointer: fine) {
+    @slot;
+  }
+}
+
+/* ==========================================================================
+   DESIGN TOKENS
+   Two orthogonal axes:
+     • palette  → brand accent colors   [data-palette="navy|teal|amethyst|slate|maroon"]
+     • mode     → light / dark surfaces [data-theme="light|dark"]
+   :root below = light mode + default "navy" palette, so the app renders
+   correctly even before JS runs.
+   ========================================================================== */
+
+:root {
+  /* ---- Brand (Pacific Blue) ---- */
+  --primary: #0a5ea6;
+  --on-primary: #ffffff;
+  --primary-container: #08477e;
+  --on-primary-container: #bfe0ff;
+  --secondary: #0e8c7f;
+  --on-secondary: #ffffff;
+  --secondary-container: #0b6e64;
+  --on-secondary-container: #9ff0e6;
+  --tertiary: #1d3a52;
+  --tertiary-container: #2a4a66;
+  --accent: #0a6cbe;
+
+  /* ---- Surfaces & text (Apple light: warm-neutral grays) ---- */
+  --background: #f5f5f7;
+  --on-background: #1d1d1f;
+  --surface: #ffffff;
+  --on-surface: #1d1d1f;
+  --surface-variant: #ececf0;
+  /* Secondary text, and the colour placeholders fall back to. This was
+     #6e6e73, which measured 3.93:1 on --surface-container-highest and 4.26:1 on
+     --surface-container-high — below WCAG 1.4.3's 4.5:1 for normal text, on a
+     screen where that text is 10–11px (report timestamps, patient meta,
+     reference ranges). #646469 is the lightest step that clears 4.5:1 against
+     every surface in this ladder (worst case 4.55:1). Only the two neutral
+     definitions below carry this token; the alternate palettes override brand
+     hues alone, so this single change covers all of them. */
+  --on-surface-variant: #646469;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #fafafc;
+  --surface-container: #f5f5f7;
+  --surface-container-high: #ebebee;
+  --surface-container-highest: #e2e2e6;
+  --outline: #86868b;
+  --outline-variant: #d2d2d7;
+
+  /* ---- Status ---- */
+  --error: #cc3033;
+  --on-error: #ffffff;
+  --error-container: #ffe5e3;
+  --on-error-container: #7a1010;
+  --success: #1a7f4b;
+  --success-container: #ddf3e4;
+  --on-success-container: #0c5a33;
+  --warning: #996100;
+  --warning-container: #fcefd6;
+  --on-warning-container: #6b4400;
+  --info: #0a6cbe;
+  --info-container: #dcebfa;
+  --on-info-container: #08406e;
+
+  /* ---- Charts ---- */
+  --chart-1: #0a6cbe;
+  --chart-2: #0e8c7f;
+  --chart-3: #7c4dff;
+  --chart-4: #e8930c;
+  --chart-5: #d64550;
+  --chart-6: #3fa45b;
+
+  /* ---- Elevation & materials ---- */
+  --sh-1: rgba(0, 0, 0, 0.05);
+  --sh-2: rgba(16, 24, 40, 0.12);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --scrim: rgba(28, 28, 30, 0.32);
+  --elevated-border: rgba(0, 0, 0, 0.04);
+}
+
+/* ---- Dark mode: shared surface ramp + default (navy) brand overrides ---- */
+[data-theme='dark'] {
+  --background: #0a0a0c;
+  --on-background: #f2f2f5;
+  --surface: #16161a;
+  --on-surface: #f2f2f5;
+  --surface-variant: #2c2c2e;
+  --on-surface-variant: #a1a1a6;
+  --surface-container-lowest: #1a1a1e;
+  --surface-container-low: #141417;
+  --surface-container: #1c1c20;
+  --surface-container-high: #26262b;
+  --surface-container-highest: #303036;
+  --outline: #98989f;
+  --outline-variant: #38383c;
+
+  --error: #ff6961;
+  --on-error: #3d0005;
+  --error-container: #5c1a16;
+  --on-error-container: #ffd9d6;
+  --success: #4cd97b;
+  --success-container: #12351f;
+  --on-success-container: #b8f0c8;
+  --warning: #ffd24a;
+  --warning-container: #3d2e00;
+  --on-warning-container: #ffe9a8;
+  --info: #58a6ff;
+  --info-container: #0f2c4a;
+  --on-info-container: #bfe0ff;
+
+  --chart-1: #58a6ff;
+  --chart-2: #38d9c4;
+  --chart-3: #b79bff;
+  --chart-4: #ffb340;
+  --chart-5: #ff8e96;
+  --chart-6: #6ed98e;
+
+  --sh-1: rgba(0, 0, 0, 0.4);
+  --sh-2: rgba(0, 0, 0, 0.55);
+  --glass: rgba(22, 22, 26, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --elevated-border: rgba(255, 255, 255, 0.08);
+
+  --primary: #58a6ff;
+  --on-primary: #00213d;
+  --primary-container: #0f3e6e;
+  --on-primary-container: #bfe0ff;
+  --secondary: #38d9c4;
+  --on-secondary: #00382f;
+  --secondary-container: #0b4f48;
+  --on-secondary-container: #9ff0e6;
+  --tertiary: #33526e;
+  --tertiary-container: #24405a;
+  --accent: #58a6ff;
+}
+
+/* ---- Palette: Clinical Teal ---- */
+[data-palette='teal'] {
+  --primary: #0b7265;
+  --on-primary: #ffffff;
+  --primary-container: #085c52;
+  --on-primary-container: #9ff0e6;
+  --secondary: #0a5ea6;
+  --on-secondary: #ffffff;
+  --secondary-container: #08477e;
+  --on-secondary-container: #bfe0ff;
+  --tertiary: #143f3a;
+  --tertiary-container: #1f4f48;
+  --accent: #0d9488;
+}
+[data-theme='dark'][data-palette='teal'] {
+  --primary: #38d9c4;
+  --on-primary: #00382f;
+  --primary-container: #0b4f48;
+  --on-primary-container: #9ff0e6;
+  --secondary: #58a6ff;
+  --on-secondary: #00213d;
+  --secondary-container: #0f3e6e;
+  --on-secondary-container: #bfe0ff;
+  --tertiary: #2c5a54;
+  --tertiary-container: #1f4f48;
+  --accent: #38d9c4;
+}
+
+/* ---- Palette: Royal Amethyst ---- */
+[data-palette='amethyst'] {
+  --primary: #6d3fc4;
+  --on-primary: #ffffff;
+  --primary-container: #57309e;
+  --on-primary-container: #e3d6ff;
+  --secondary: #8c2db0;
+  --on-secondary: #ffffff;
+  --secondary-container: #6e2390;
+  --on-secondary-container: #f3d9ff;
+  --tertiary: #3c2a5e;
+  --tertiary-container: #4c3872;
+  --accent: #7c4dff;
+}
+[data-theme='dark'][data-palette='amethyst'] {
+  --primary: #b79bff;
+  --on-primary: #20093f;
+  --primary-container: #452680;
+  --on-primary-container: #e3d6ff;
+  --secondary: #d9a3ff;
+  --on-secondary: #33064f;
+  --secondary-container: #5b2a85;
+  --on-secondary-container: #f3d9ff;
+  --tertiary: #55407e;
+  --tertiary-container: #4c3872;
+  --accent: #b79bff;
+}
+
+/* ---- Palette: Graphite ---- */
+[data-palette='slate'] {
+  --primary: #3a3a3c;
+  --on-primary: #ffffff;
+  --primary-container: #2c2c2e;
+  --on-primary-container: #e5e5ea;
+  --secondary: #6e6e73;
+  --on-secondary: #ffffff;
+  --secondary-container: #5a5a5f;
+  --on-secondary-container: #f2f2f5;
+  --tertiary: #4a4a4e;
+  --tertiary-container: #5a5a5f;
+  --accent: #0a6cbe;
+}
+[data-theme='dark'][data-palette='slate'] {
+  --primary: #aeaeb2;
+  --on-primary: #1c1c1e;
+  --primary-container: #48484a;
+  --on-primary-container: #e5e5ea;
+  --secondary: #8e8e93;
+  --on-secondary: #f2f2f5;
+  --secondary-container: #3a3a3c;
+  --on-secondary-container: #e5e5ea;
+  --tertiary: #636366;
+  --tertiary-container: #545456;
+  --accent: #58a6ff;
+}
+
+/* ---- Palette: Hematology Crimson ---- */
+[data-palette='maroon'] {
+  --primary: #b02a3a;
+  --on-primary: #ffffff;
+  --primary-container: #8e1f2e;
+  --on-primary-container: #ffd9dc;
+  --secondary: #c2453d;
+  --on-secondary: #ffffff;
+  --secondary-container: #9a322c;
+  --on-secondary-container: #ffd9d4;
+  --tertiary: #5e2228;
+  --tertiary-container: #742c33;
+  --accent: #d64550;
+}
+[data-theme='dark'][data-palette='maroon'] {
+  --primary: #ff8e96;
+  --on-primary: #3d0712;
+  --primary-container: #7a1f2e;
+  --on-primary-container: #ffd9dc;
+  --secondary: #ffa39a;
+  --on-secondary: #3d0b07;
+  --secondary-container: #6e221c;
+  --on-secondary-container: #ffd9d4;
+  --tertiary: #8c4a52;
+  --tertiary-container: #742c33;
+  --accent: #ff6961;
+}
+
+/* ==========================================================================
+   TAILWIND MAPPING — `inline` so utilities emit var() references and pick up
+   runtime palette / mode swaps on <html>.
+   ========================================================================== */
+
+/* Runtime corner-radius scale. Kept in :root (not inlined literals) so the
+   [data-radius='sharp'] preference can override every corner token at once. */
+:root {
+  --r-lg: 0.75rem;
+  --r-xl: 0.875rem;
+  --r-2xl: 1.125rem;
+  --r-3xl: 1.375rem;
+  --r-4xl: 1.75rem;
+}
+
+@theme inline {
+  /* ---------------------------------------------------------------------
+     TYPE SCALE — the one ladder the app renders from.
+     Declared in rem so the Settings → Text size preference
+     ([data-text-size='sm' | 'lg'], below) resizes the *whole* interface.
+     Arbitrary `text-[13px]` values are pinned to 16px and silently opt out of
+     that preference, so they are banned by the `no-restricted-syntax` ESLint
+     rule instead. Eight steps, no half-pixel values: a size must be a named
+     role, not a nudge.
+     --------------------------------------------------------------------- */
+  --text-micro: 0.6875rem; /* 11px — uppercase column headers, badges, kbd */
+  --text-micro--line-height: 1.35;
+  --text-caption: 0.75rem; /* 12px — meta, secondary copy, chart labels */
+  --text-caption--line-height: 1.45;
+  --text-body: 0.8125rem; /* 13px — default UI copy, button labels */
+  --text-body--line-height: 1.5;
+  --text-lede: 0.9375rem; /* 15px — list-row titles, prominent body */
+  --text-lede--line-height: 1.45;
+  --text-title: 1.0625rem; /* 17px — page + section headings */
+  --text-title--line-height: 1.3;
+  --text-subtitle: 1.375rem; /* 22px — in-card headings, landing sub-heroes */
+  --text-subtitle--line-height: 1.25;
+  --text-display: 1.75rem; /* 28px — KPI / stat values */
+  --text-display--line-height: 1.15;
+
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', ui-sans-serif, system-ui,
+    sans-serif;
+
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary: var(--on-primary);
+  --color-on-primary-container: var(--on-primary-container);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary: var(--on-secondary);
+  --color-on-secondary-container: var(--on-secondary-container);
+
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-accent: var(--accent);
+
+  --color-background: var(--background);
+  --color-on-background: var(--on-background);
+
+  --color-surface: var(--surface);
+  --color-on-surface: var(--on-surface);
+  --color-surface-variant: var(--surface-variant);
+  --color-on-surface-variant: var(--on-surface-variant);
+
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  --color-error: var(--error);
+  --color-error-container: var(--error-container);
+  --color-on-error: var(--on-error);
+  --color-on-error-container: var(--on-error-container);
+
+  --color-success: var(--success);
+  --color-success-container: var(--success-container);
+  --color-on-success-container: var(--on-success-container);
+  --color-warning: var(--warning);
+  --color-warning-container: var(--warning-container);
+  --color-on-warning-container: var(--on-warning-container);
+  --color-info: var(--info);
+  --color-info-container: var(--info-container);
+  --color-on-info-container: var(--on-info-container);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  /* Apple-style continuous corner scale — rounded-3xl/4xl are used app-wide */
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-3xl: var(--r-3xl);
+  --radius-4xl: var(--r-4xl);
+
+  /* Layered elevation that adapts to color mode */
+  --shadow-card: 0 1px 2px var(--sh-1), 0 2px 10px -2px var(--sh-1);
+  --shadow-raised: 0 1px 2px var(--sh-1), 0 8px 24px -8px var(--sh-2);
+  --shadow-float: 0 2px 6px var(--sh-1), 0 18px 48px -12px var(--sh-2);
+}
+
+/* ==========================================================================
+   FOLD BREAKPOINT — the band Tailwind's default scale has no step for.
+   A foldable unfolded measures 600-770 CSS px wide (Galaxy Z Fold ~600-660,
+   Pixel Fold ~766) and every one of them used to fall between `sm` (640) and
+   `md` (768) or below both, so the whole tablet-sized inner screen rendered
+   the phone shell: drawer nav, floating bottom tab pill, single column cards.
+   600px is Android's own sw600dp "this is not a phone" line, and it is safe
+   because no portrait phone is anywhere near it — the widest are ~430-440px.
+   Anything that switches the *interface structure* uses `fold:`; padding and
+   type sizes stay on `md:` because they are comfort, not structure, and the
+   content column is `viewport − rail` wide, not `viewport` wide.
+   ========================================================================== */
+@theme {
+  --breakpoint-fold: 600px;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-background antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  html {
+    /* Prevent iOS Safari from inflating font sizes in landscape */
+    -webkit-text-size-adjust: 100%;
+    background: var(--background);
+  }
+
+  /* Remove the grey tap flash on mobile WebKit/Edge */
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Touch feedback: press scales the control down slightly (Apple-style).
+     The anchor rule excludes links that wrap a button/[role=button] so the two
+     transforms don't compound into an over-squished ~0.94 press. */
+  button:active:not(:disabled),
+  [role='button']:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  a:active:not(:has(button, [role='button'])) {
+    transform: scale(0.97);
+  }
+
+  button,
+  [role='button'],
+  a {
+    /* No box-shadow in the global tween — shadow animation repaints on the
+       main thread, which is costly under the liquid-glass backdrop-filter
+       stack. Components that want an elevation change on hover swap shadows
+       instantly or declare their own transition. */
+    transition:
+      transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      background-color 180ms ease,
+      color 180ms ease,
+      opacity 180ms ease,
+      border-color 180ms ease;
+  }
+
+  /* Accessibility: a visible, on-brand focus ring for keyboard users only */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
+  /* Prevent overscroll "rubber-band" revealing white gutters on mobile */
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    color: var(--on-background);
+  }
+
+  /* Slim, rounded scrollbars that match the design system */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--outline-variant);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--outline);
+  }
+
+  /* Inputs grow a soft glow when focused. Outline (not box-shadow) so the
+     ring rides on the compositor and never repaints the backdrop-filter
+     stack below; it starts transparent so only outline-color animates. */
+  input,
+  select,
+  textarea {
+    outline: 4px solid transparent;
+    outline-offset: 0;
+    transition:
+      outline-color 200ms ease,
+      border-color 200ms ease;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+
+  /* Rejected input shakes once — driven by the moment validation fails
+     (see useShakeOnNewError in ui/Field.tsx), never by persisted error
+     state, so reopening a form with an old error doesn't replay it. */
+
+  /* Range sliders (SliderField) — same track/thumb language across engines,
+     24 px visual thumb on a ~40 px touch-friendly hit area */
+  .range-input {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 40px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .range-input:disabled {
+    cursor: not-allowed;
+  }
+  .range-input::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--surface-container-highest, #e2e6ec);
+  }
+  .range-input::-moz-range-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--surface-container-highest, #e2e6ec);
+  }
+  .range-input::-moz-range-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -9px;
+    height: 24px;
+    width: 24px;
+    border-radius: 999px;
+    border: 2px solid var(--accent);
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+    transition: transform 120ms ease;
+  }
+  .range-input::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+    border-radius: 999px;
+    border: 2px solid var(--accent);
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  }
+  .range-input:active::-webkit-slider-thumb {
+    transform: scale(1.12);
+  }
+  /* Hide the native spin buttons on SliderField's compact exact-value box */
+  .slider-field::-webkit-outer-spin-button,
+  .slider-field::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input.slider-field[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* NProgress bar follows the active accent */
+  #nprogress .bar {
+    background: var(--accent) !important;
+  }
+}
+
+/* ==========================================================================
+   MICRO-INTERACTION UTILITIES
+   ========================================================================== */
+
+/* Cards raise gently on hover and settle on press. No blanket will-change —
+   list-heavy dashboards would each promote their own compositor layer for a
+   hover most touch users never trigger; the browser auto-composites elements
+   with an active transform animation. Hover lift is pointer-fine only. */
+.card-hover {
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 240ms ease,
+    border-color 240ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-raised);
+    border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+}
+.card-hover:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* Cursor spotlight — a soft accent glow that tracks the pointer across a
+   surface. Components update --spot-x/--spot-y on pointermove. */
+.spotlight {
+  position: relative;
+}
+.spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 320ms ease;
+  background: radial-gradient(
+    240px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, var(--accent) 9%, transparent),
+    transparent 70%
+  );
+}
+@media (hover: hover) and (pointer: fine) {
+  .spotlight:hover::after {
+    opacity: 1;
+  }
+}
+
+/* Nav links: an accent underline that slides in from the left */
+.nav-underline {
+  position: relative;
+}
+.nav-underline::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.2rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (hover: hover) {
+  .nav-underline:hover::after {
+    transform: scaleX(1);
+  }
+}
+.nav-underline:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* Light sweep across primary buttons on hover */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 65%
+  );
+  transform: translateX(-110%);
+  transition: transform 650ms ease;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .btn-shine:hover::after {
+    transform: translateX(110%);
+  }
+}
+
+/* Shimmering skeleton while lazy pages load. The sweep is a transform on a
+   pseudo-element so it composites on the GPU — animating background-position
+   repaints on the main thread, exactly when hydration + charts need it. */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-container-high);
+}
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  animation: shimmer-sweep 1.6s infinite ease-in-out;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--surface-container-low) 85%, transparent),
+    transparent
+  );
+}
+
+/* Icons nudge/rotate when their button or card is hovered */
+.icon-pop {
+  transition: transform 250ms cubic-bezier(0.34, 1.8, 0.64, 1);
+}
+.group:hover .icon-pop {
+  transform: scale(1.12) rotate(-4deg);
+}
+
+/* Trailing arrows glide toward their destination while the .group is hovered */
+.icon-slide,
+.icon-slide-back {
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.group:hover .icon-slide {
+  transform: translateX(2.5px);
+}
+.group:hover .icon-slide-back {
+  transform: translateX(-2.5px);
+}
+
+/* Subtle breathing pulse for "live" status dots */
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+.animate-soft-pulse {
+  animation: soft-pulse 2.2s ease-in-out infinite;
+}
+
+/* Entrance: fade + rise, used for list items */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise-in {
+  animation: rise-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Entrance: simple fade (referenced by the Reports page and lazy-route fallback) */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 300ms ease both;
+}
+
+/* Entrance: badges, chips and small controls pop in with a hint of overshoot */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-pop-in {
+  animation: pop-in 240ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Failed validation / rejected actions: a short, decisive horizontal shake */
+@keyframes shake-x {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+.animate-shake-x {
+  animation: shake-x 360ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Toast auto-dismiss countdown bar — scaleX keeps it on the compositor, and
+   animation-play-state lets the toast pause the timer on hover/focus. */
+@keyframes toast-progress {
+  to {
+    transform: scaleX(0);
+  }
+}
+.toast-progress {
+  transform-origin: left center;
+  animation: toast-progress linear both;
+}
+
+/* Hairline separator that matches the current material */
+.hairline {
+  border-color: var(--outline-variant);
+}
+
+/* Hide scrollbars on horizontal chip rails */
+.no-scrollbar,
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Forced-colors mode (Windows High Contrast, Android color inversion / text
+ * enhancement). Without this block the app quietly becomes unusable there:
+ * every surface in the design system is a background *colour*, so when the
+ * platform replaces the palette the card / sheet / nav distinctions vanish,
+ * the `--glass` blur layers are dropped, the shadows that were the only depth
+ * cue are discarded, and `--outline-variant` hairlines — the sole structural
+ * line in most components — collapse into invisibility.
+ *
+ * The fix is to stop expressing structure through colour and shadow here, and
+ * express it through borders the platform is allowed to recolour.
+ */
+@media (forced-colors: active) {
+  :root {
+    /* One real canvas, one real text colour: the tonal surface ladder cannot
+       survive a forced palette, so it stops pretending to. */
+    --background: Canvas;
+    --surface: Canvas;
+    --surface-variant: Canvas;
+    --surface-container-lowest: Canvas;
+    --surface-container-low: Canvas;
+    --surface-container: Canvas;
+    --surface-container-high: Canvas;
+    --surface-container-highest: Canvas;
+    --on-background: CanvasText;
+    --on-surface: CanvasText;
+    --on-surface-variant: CanvasText;
+    /* Borders are now the only thing separating a sheet from the page behind
+       it, so they take the text colour rather than a 12%-alpha hairline. */
+    --outline: CanvasText;
+    --outline-variant: CanvasText;
+    --elevated-border: CanvasText;
+    --glass: Canvas;
+    --glass-border: CanvasText;
+    --scrim: Canvas;
+    --primary: Highlight;
+    --on-primary: HighlightText;
+    --accent: LinkText;
+    --error: CanvasText;
+    --success: CanvasText;
+    --warning: CanvasText;
+    --info: CanvasText;
+  }
+
+  /* Depth was carried by box-shadow; in a forced palette it is discarded, so
+     anything elevated has to declare an edge instead. */
+  * {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  [class*='rounded'] {
+    border-color: CanvasText;
+  }
+
+  /* A focus ring painted with a theme colour is invisible once that colour is
+     forced. Hand it back to the platform's own high-visibility indicator. */
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+
+  /* Status is already carried by the word next to the dot (Draft / Final / Paid),
+     so the colour-only dot simply becomes a bordered one. */
+  [aria-hidden='true'].rounded-full {
+    forced-color-adjust: none;
+    border: 1px solid CanvasText;
+  }
+
+  /* Charts and the report's own printed palette are deliberate colour
+     information; keeping the author colours is better than a solid block. */
+  canvas,
+  svg {
+    forced-color-adjust: none;
+  }
+}
+
+/* In-app appearance prefs (Settings → Theme Settings). The attributes are set
+   on <html> by lib/theme.ts applyAppearance() and by the index.html bootstrap. */
+
+/* Text scale — rem-based type utilities follow the root font size. */
+[data-text-size='sm'] {
+  font-size: 15px;
+}
+[data-text-size='lg'] {
+  font-size: 17.5px;
+}
+
+/* Sharp corner style — squarer tokens for every radius step. */
+[data-radius='sharp'] {
+  --r-lg: 0.375rem;
+  --r-xl: 0.5rem;
+  --r-2xl: 0.625rem;
+  --r-3xl: 0.75rem;
+  --r-4xl: 0.875rem;
+}
+
+/* Opt-in reduced motion — same collapse as the OS preference above. */
+[data-motion='reduced'] *,
+[data-motion='reduced'] *::before,
+[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Safe-area helpers for notched phones (PWA / fullscreen mode).
+
+   In the APK the WebView runs edge-to-edge under the status bar, so anything
+   that touches a screen edge has to be pushed back into the safe area.
+   Android exposes that band through env(safe-area-inset-*), and Capacitor's
+   SystemBars plugin mirrors the same numbers into --safe-area-inset-* custom
+   properties (they stay 0px on the WebViews where the native side insets the
+   WebView itself instead). max() is therefore correct on every path and can
+   never double-count the status bar. */
+:root {
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --safe-right: max(env(safe-area-inset-right, 0px), var(--safe-area-inset-right, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  --safe-left: max(env(safe-area-inset-left, 0px), var(--safe-area-inset-left, 0px));
+}
+.pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+.pt-safe {
+  padding-top: var(--safe-top);
+}
+/* Deliberately no `.px-safe`: these helpers are unlayered, so they beat every
+   `sm:`/`md:` padding utility on the same element (Tailwind v4 puts its own
+   utilities in @layer utilities, and unlayered CSS always wins). Anything that
+   needs a horizontal cutout inset next to a responsive padding step composes the
+   value instead — see pl-[calc(1rem_+_var(--safe-left))] on the dashboard header
+   and the bottom tab bar. */
+
+/* Frosted vibrancy material (Apple's signature blur surface) */
+.glass-card,
+.vibrancy {
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border-color: var(--glass-border);
+}
+
+/* Prefer-reduced-transparency: swap the frosted blur for a solid surface.
+   Two audiences, one rule — OS users who set it, and low-end Android WebViews
+   where several simultaneous backdrop-filters are the top scroll-jank source.
+   Mirrors the [data-motion='reduced'] opt-in so Settings can force it too. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-card,
+  .vibrancy {
+    background: var(--surface-container-lowest);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+[data-transparency='reduced'] .glass-card,
+[data-transparency='reduced'] .vibrancy {
+  background: var(--surface-container-lowest);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* content-visibility: let the browser skip layout + paint for list rows that
+   are off-screen, so long patient / report stacks scroll smoothly on weak
+   devices. contain-intrinsic-size gives a row-height estimate so the scrollbar
+   stays stable while rows are skipped. */
+.cv-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 60px;
+}
+
+/* ==========================================================================
+   SPLASH SCREEN (styled here so it follows the palette with zero JS hexes)
+   ========================================================================== */
+
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    160deg,
+    var(--primary-container) 0%,
+    var(--primary) 55%,
+    var(--tertiary) 100%
+  );
+}
+.app-splash .splash-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.app-splash .splash-title {
+  color: var(--on-primary);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 20px 0 6px;
+}
+.app-splash .splash-sub {
+  color: var(--on-primary-container);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  margin: 0 0 36px;
+}
+.app-splash .splash-track {
+  width: 160px;
+  height: 3px;
+  background: color-mix(in srgb, var(--on-primary) 18%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.app-splash .splash-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--on-primary);
+  border-radius: 999px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.3s ease;
+}
