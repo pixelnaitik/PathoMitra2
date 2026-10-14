@@ -112,8 +112,18 @@ const privateRoot = (): string => app.getPath('userData');
 function withinAppRoots(abs: string): string {
   const normalized = path.resolve(abs);
   const roots = [privateRoot(), app.getPath('documents')];
-  if (!roots.some(root => contains(root, normalized))) {
+  const root = roots.find(candidate => contains(candidate, normalized));
+  if (!root) {
     throw new Error(`path is outside the app's own folders: ${abs}`);
+  }
+
+  // Printing/opening is only allowed for an existing target. A symlink or
+  // junction inside an approved folder must not turn that permission into a
+  // way to open an arbitrary file elsewhere on the machine.
+  const realRoot = fs.realpathSync(root);
+  const realTarget = fs.realpathSync(normalized);
+  if (!contains(realRoot, realTarget)) {
+    throw new Error(`path resolves outside the app's own folders: ${abs}`);
   }
   return normalized;
 }
