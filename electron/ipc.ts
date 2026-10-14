@@ -77,19 +77,30 @@ function within(root: string, rel: string): string {
   if (!contains(root, abs)) {
     throw new Error(`path escapes the app storage root: ${rel}`);
   }
-  try {
-    const real = fs.realpathSync(abs);
-    if (!contains(fs.realpathSync(root), real)) {
-      throw new Error(`path resolves outside the app storage root: ${rel}`);
+
+  // Resolve the nearest existing ancestor, not only the final target. A new
+  // file under an existing symlink/junction makes realpathSync(abs) fail with
+  // ENOENT, which used to skip the real-path check and permit an escaped write.
+  const realRoot = fs.realpathSync(root);
+  let candidate = abs;
+  while (true) {
+    try {
+      const realCandidate = fs.realpathSync(candidate);
+      if (!contains(realRoot, realCandidate)) {
+        throw new Error(`path resolves outside the app storage root: ${rel}`);
+      }
+      break;
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('path resolves')) throw err;
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT' && code !== 'ENOTDIR') throw err;
+      const parent = path.dirname(candidate);
+      if (parent === candidate) throw new Error(`could not validate storage path: ${rel}`);
+      candidate = parent;
     }
-  } catch (err) {
-    // "resolves outside" is a refusal; anything else (ENOENT for a file not
-    // written yet, EINVAL on odd platforms) leaves the lexical guard in force.
-    if (err instanceof Error && err.message.startsWith('path resolves')) throw err;
   }
   return abs;
 }
-
 const privateRoot = (): string => app.getPath('userData');
 
 /**
