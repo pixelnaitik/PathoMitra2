@@ -1083,3 +1083,43 @@
   transform-origin: left center;
   transition: transform 0.3s ease;
 }
+
+/* ==========================================================================
+   RELEASE POLISH — keyboard clarity and touch-first controls
+   Keep the same visual language across the Android WebView and desktop shell,
+   while ensuring focus is visible when navigating with a keyboard or switch.
+   ========================================================================== */
+
+/* A predictable, high-contrast focus ring across native and desktop surfaces.
+   Components may opt into a more specific outline, but must not remove focus. */
+:where(button, [role='button'], a, input, select, textarea, [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Touch-first controls get a comfortable hit area without stretching compact
+   icon buttons that already provide their own accessible hit-area wrappers. */
+@media (pointer: coarse) {
+  :where(button, [role='button'], a, input, select, textarea) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where(input, select, textarea) {
+    scroll-margin-block: 6rem;
+  }
+}
+
+/* Avoid accidental text selection during rapid navigation, without blocking
+   selection in records, reports, form fields, or long-press copy workflows. */
+:where(button, [role='button'], nav a) {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (min-width: 768px) {
+  /* On tablet and desktop, retain a stable reading measure for long-form views
+     while leaving data tables and report canvases free to use their full width. */
+  .prose-measure {
+    max-width: 78ch;
+  }
+}
