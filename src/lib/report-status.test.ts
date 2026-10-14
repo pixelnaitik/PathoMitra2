@@ -11,15 +11,12 @@ describe('report-status view model (UI-P0-01)', () => {
   });
 
   it('treats unknown status values as draft (fail-closed for clinical display)', () => {
-    // The schema only allows 'draft' | 'final'; anything else means the doc
-    // came from a legacy backup and has NOT been reviewed. It must not render
-    // as issued — that would put a draft in the same visual class as a
-    // handed-over report.
-    expect(resolveReportViewStatus({ status: 'pending', version: 1 })).toBe('issued');
-    expect(resolveReportViewStatus({ status: null, version: 1 })).toBe('issued');
-    // Only an explicit 'draft' string unlocks the draft treatment; normalizeReportStatus
-    // in lib/models.ts converts every other unknown to 'draft' at the read boundary,
-    // so pages never see the fallbacks above. This test pins the raw resolver only.
+    // The schema only allows 'draft' | 'final'; missing or unknown values may
+    // come from legacy backups or malformed records. Fail closed instead of
+    // presenting them as safe to distribute.
+    expect(resolveReportViewStatus({ status: 'pending', version: 1 })).toBe('draft');
+    expect(resolveReportViewStatus({ status: null, version: 1 })).toBe('draft');
+    expect(resolveReportViewStatus({ status: undefined, version: 1 })).toBe('draft');
   });
 
   it('gives each status a distinct label, tone, description, and icon (not colour-only)', () => {

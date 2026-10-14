@@ -487,7 +487,7 @@ export default function DashboardLayout({
               className="hidden fold:flex !static !py-1 !px-3"
               onClick={activeTab === 'settings' ? () => setActiveTab('dashboard') : undefined}
             />
-            <h2 className="truncate text-[17px] font-bold tracking-[-0.02em] text-on-surface capitalize hidden sm:block">
+            <h2 className="block min-w-0 max-w-[34vw] truncate text-[15px] font-bold tracking-[-0.02em] text-on-surface capitalize sm:max-w-none sm:text-[17px]">
               {navItems.find(n => n.id === activeTab)?.label ?? activeTab}
             </h2>
           </div>

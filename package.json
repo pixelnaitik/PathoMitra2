@@ -12,12 +12,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pixelnaitik/PathoMitra.git"
+    "url": "git+https://github.com/pixelnaitik/PathoMitra2.git"
   },
   "bugs": {
-    "url": "https://github.com/pixelnaitik/PathoMitra/issues"
+    "url": "https://github.com/pixelnaitik/PathoMitra2/issues"
   },
-  "homepage": "https://github.com/pixelnaitik/PathoMitra#readme",
+  "homepage": "https://github.com/pixelnaitik/PathoMitra2#readme",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

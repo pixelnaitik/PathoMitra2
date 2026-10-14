@@ -4,9 +4,9 @@
 > encrypted reports, billing and analytics, entirely on-device.
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-![CI](https://github.com/pixelnaitik/PathoMitra/actions/workflows/ci.yml/badge.svg)
-![Android](https://github.com/pixelnaitik/PathoMitra/actions/workflows/android.yml/badge.svg)
-![Release](https://github.com/pixelnaitik/PathoMitra/actions/workflows/release.yml/badge.svg)
+![CI](https://github.com/pixelnaitik/PathoMitra2/actions/workflows/ci.yml/badge.svg)
+![Android](https://github.com/pixelnaitik/PathoMitra2/actions/workflows/android.yml/badge.svg)
+![Release](https://github.com/pixelnaitik/PathoMitra2/actions/workflows/release.yml/badge.svg)
 
 **PathoMitra** is built with React 19, Vite, Tailwind CSS and Capacitor 8. It runs as a
 web app during development and ships as an Android APK/AAB where every clinical record
@@ -132,7 +132,7 @@ configuration. Optional environment switches are documented in
 ### Setup
 
 ```bash
-git clone https://github.com/pixelnaitik/PathoMitra.git
+git clone https://github.com/pixelnaitik/PathoMitra2.git
 cd PathoMitra
 npm install
 npm run dev

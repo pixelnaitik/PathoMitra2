@@ -19,11 +19,11 @@ in the next tagged release.
 **Do not open a public issue for anything with security impact** — not even one
 that looks obviously severe. Use one of:
 
-- [GitHub private vulnerability reporting](https://github.com/pixelnaitik/PathoMitra/security/advisories/new)
+- [GitHub private vulnerability reporting](https://github.com/pixelnaitik/PathoMitra2/security/advisories/new)
   (requires the repository owner to enable it under
   Settings → Security → Advanced Security), or
 - an email to the maintainer address shown on the
-  [repository page](https://github.com/pixelnaitik/PathoMitra), if private
+  [repository page](https://github.com/pixelnaitik/PathoMitra2), if private
   vulnerability reporting is unavailable.
 
 You should get a response within **7 days**, and a fix or a written explanation
