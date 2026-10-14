@@ -36,7 +36,10 @@ export interface ReportStatusInput {
 
 /** Resolve the stored status + version into the three-way view model. */
 export function resolveReportViewStatus(input: ReportStatusInput): ReportViewStatus {
-  if (input.status === 'draft') return 'draft';
+  // Fail closed: only an explicit, schema-valid final status may be presented
+  // as issued. Unknown/missing values can come from legacy backups or malformed
+  // records and must never look like a report that is safe to hand out.
+  if (input.status !== 'final') return 'draft';
   const version = Number(input.version ?? 1);
   return Number.isFinite(version) && version > 1 ? 'amended' : 'issued';
 }
