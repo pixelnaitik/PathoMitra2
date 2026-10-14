@@ -30,6 +30,7 @@ const ENTITIES = new Set([
   'doctors',
   'reports',
   'reportNotes',
+  'reportVersions',
   'invoices',
   'labSettings',
   'notificationState',
