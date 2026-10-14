@@ -831,12 +831,9 @@ export default function ReportsPage({
           );
           doc.setTextColor(BRAND[0], BRAND[1], BRAND[2]);
           doc.setFont('helvetica', 'bold');
-          const printableStatus =
-            report.status === 'draft'
-              ? 'DRAFT — NOT ISSUED'
-              : report.status === 'final'
-                ? 'FINAL'
-                : 'STATUS UNCONFIRMED';
+          // Share the same fail-closed status model as the on-screen report
+          // list: drafts and malformed legacy records must never be branded FINAL.
+          const printableStatus = reportStatusView(report).description.toUpperCase();
           doc.text(printableStatus, 210 - mRight, currentY + 5.2, { align: 'right' });
           doc.setDrawColor(HAIRLINE[0], HAIRLINE[1], HAIRLINE[2]);
           doc.setLineWidth(0.3);
